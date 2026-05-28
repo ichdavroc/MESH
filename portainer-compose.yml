@@ -3,7 +3,6 @@ services:
     image: alpine:latest
     restart: "no"
     volumes:
-      - ./control-plane/headscale/config.example.yaml:/src/config.example.yaml:ro
       - headscale-config:/etc/headscale
     environment:
       - CONTROL_PLANE_DOMAIN=${CONTROL_PLANE_DOMAIN}
@@ -11,7 +10,12 @@ services:
       - sh
       - -c
       - |
-        sed "s|server_url: https://CONTROL_PLANE_DOMAIN|server_url: ${CONTROL_PLANE_DOMAIN}|g" /src/config.example.yaml > /etc/headscale/config.yaml
+        apk add --no-cache curl
+        curl -fsSL https://raw.githubusercontent.com/juanfont/headscale/v0.28.0/config-example.yaml -o /etc/headscale/config.yaml
+
+        sed -i "s|^server_url:.*|server_url: ${CONTROL_PLANE_DOMAIN}|g" /etc/headscale/config.yaml
+        sed -i "s|^listen_addr:.*|listen_addr: 0.0.0.0:8080|g" /etc/headscale/config.yaml
+        sed -i "s|override_local_dns: true|override_local_dns: false|g" /etc/headscale/config.yaml
 
         grep -q "^noise:" /etc/headscale/config.yaml || cat >> /etc/headscale/config.yaml <<'EOF'
 
@@ -19,10 +23,8 @@ services:
           private_key_path: /var/lib/headscale/noise_private.key
         EOF
 
-        sed -i 's|override_local_dns: true|override_local_dns: false|g' /etc/headscale/config.yaml
-
         echo "Generated config:"
-        grep -E "server_url:|override_local_dns:|private_key_path:" /etc/headscale/config.yaml
+        grep -E "server_url:|listen_addr:|override_local_dns:|private_key_path:" /etc/headscale/config.yaml
 
   headscale:
     image: docker.io/headscale/headscale:0.28.0@sha256:51b1b9182bb6219e97374fa89af6b9320d6f87ecc739e328d5357ea4fa7a5ce3
