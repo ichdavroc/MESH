@@ -7,15 +7,15 @@ services:
       - headscale-data:/var/lib/headscale
     tmpfs:
       - /var/run/headscale
-    command: >
-      sh -c "
-      if [ ! -f /etc/headscale/config.yaml ]; then
-        sed -e 's/CONTROL_PLANE_DOMAIN/${CONTROL_PLANE_DOMAIN}/g'
-        /etc/headscale/config.example.yaml
-        > /etc/headscale/config.yaml;
-      fi;
-      headscale serve
-      "
+    entrypoint:
+      - /bin/sh
+      - -c
+    command:
+      - |
+        if [ ! -f /etc/headscale/config.yaml ]; then
+          sed "s|CONTROL_PLANE_DOMAIN|${CONTROL_PLANE_DOMAIN}|g" /etc/headscale/config.example.yaml > /etc/headscale/config.yaml
+        fi
+        exec headscale serve
 
   ui:
     build: ./control-plane/mesh-ui
