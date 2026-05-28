@@ -3,23 +3,32 @@ services:
     image: alpine:latest
     restart: "no"
     volumes:
-      - ./control-plane/headscale:/work
+      - ./control-plane/headscale/config.example.yaml:/src/config.example.yaml:ro
+      - headscale-config:/etc/headscale
     environment:
       - CONTROL_PLANE_DOMAIN=${CONTROL_PLANE_DOMAIN}
     command:
       - sh
       - -c
       - |
-        if [ ! -f /work/config.yaml ]; then
-          sed "s|CONTROL_PLANE_DOMAIN|${CONTROL_PLANE_DOMAIN}|g" /work/config.example.yaml > /work/config.yaml
-        fi
-        echo "Headscale config ready"
+        sed "s|server_url: https://CONTROL_PLANE_DOMAIN|server_url: ${CONTROL_PLANE_DOMAIN}|g" /src/config.example.yaml > /etc/headscale/config.yaml
+
+        grep -q "^noise:" /etc/headscale/config.yaml || cat >> /etc/headscale/config.yaml <<'EOF'
+
+        noise:
+          private_key_path: /var/lib/headscale/noise_private.key
+        EOF
+
+        sed -i 's|override_local_dns: true|override_local_dns: false|g' /etc/headscale/config.yaml
+
+        echo "Generated config:"
+        grep -E "server_url:|override_local_dns:|private_key_path:" /etc/headscale/config.yaml
 
   headscale:
     image: docker.io/headscale/headscale:0.28.0@sha256:51b1b9182bb6219e97374fa89af6b9320d6f87ecc739e328d5357ea4fa7a5ce3
     restart: unless-stopped
     volumes:
-      - ./control-plane/headscale:/etc/headscale
+      - headscale-config:/etc/headscale
       - headscale-data:/var/lib/headscale
     tmpfs:
       - /var/run/headscale
@@ -53,4 +62,5 @@ services:
       - ui
 
 volumes:
+  headscale-config:
   headscale-data:
