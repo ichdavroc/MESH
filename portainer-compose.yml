@@ -43,7 +43,7 @@ services:
     build: ./control-plane/mesh-ui
     restart: unless-stopped
     volumes:
-      - ./control-plane/nginx.conf:/etc/nginx/nginx.conf.template
+      - ./control-plane/nginx.conf:/etc/nginx/nginx.conf.template:ro
     environment:
       - CORS_ORIGIN=${CORS_ORIGIN}
       - NGINX_MODE=prod
