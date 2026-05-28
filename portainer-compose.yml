@@ -1,5 +1,5 @@
 services:
-headscale:
+  headscale:
     image: docker.io/headscale/headscale:0.28.0@sha256:51b1b9182bb6219e97374fa89af6b9320d6f87ecc739e328d5357ea4fa7a5ce3
     restart: unless-stopped
     volumes:
@@ -19,11 +19,12 @@ headscale:
       - NGINX_MODE=prod
     depends_on:
       - headscale
-    entrypoint: >
-      /bin/sh -c "envsubst '$$CORS_ORIGIN $$NGINX_MODE'
-      < /etc/nginx/nginx.conf.template
-      > /tmp/nginx.conf
-      && nginx -c /tmp/nginx.conf -g 'daemon off;'"
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        envsubst '$$CORS_ORIGIN $$NGINX_MODE' < /etc/nginx/nginx.conf.template > /tmp/nginx.conf
+        nginx -c /tmp/nginx.conf -g 'daemon off;'
 
   cloudflared:
     image: cloudflare/cloudflared:latest
